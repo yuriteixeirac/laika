@@ -2,8 +2,8 @@ from watchdog.events import *
 import threading
 from queue import Queue
 from pathlib import Path
-from services import Database, Vectorizer
-from services.models import File
+from src.core.services import Database, Vectorizer
+from src.core.models import File
 
 
 class LaikaEventHandler(RegexMatchingEventHandler):

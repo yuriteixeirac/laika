@@ -2,10 +2,10 @@ from watchdog.observers import Observer
 from dotenv import load_dotenv
 import os, threading
 from queue import Queue, Empty
-from services.database import Database
-from services.vectorizer import Vectorizer
-from services.event_handler import LaikaEventHandler
-from services.models import File
+from src.core.services.database import Database
+from src.core.services.vectorizer import Vectorizer
+from src.core.services.event_handler import LaikaEventHandler
+from src.core.models import File
 
 load_dotenv()
 
@@ -48,6 +48,8 @@ def main() -> None:
         daemon=True
     )
     queue_thread.start()
+
+    print('APPLICATION STARTUP FINISHED.')
 
     # Forced stop
     while True:

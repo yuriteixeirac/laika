@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+dependencies = [
+    'sentence-transformers',
+    'chromadb',
+    'watchdog',
+    'textual',
+]
+
+[project]
+name = "laika"
+version = "1.0"
+
+[project.scripts]
+laika-core = "laika.core.core:main"
+laika = "laika.cmd.laika:main"
+
+[tool.setuptools.packages.find]
+where = ["."]

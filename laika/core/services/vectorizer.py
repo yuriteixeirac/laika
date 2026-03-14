@@ -1,6 +1,6 @@
 import chromadb
-from services.models import File
-from utils import LaikaEmbeddingFunction
+from src.core.models import File
+from src.core.utils import LaikaEmbeddingFunction
 
 class Vectorizer:
     def __init__(self) -> None:

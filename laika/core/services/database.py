@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
-from services.models import File
-from utils import compute_hash
+from src.core.models import File
+from src.core.utils import compute_hash
 
 
 class Database:
@@ -10,7 +10,7 @@ class Database:
         sqlite3 database with a single table of files.
     """
     def __init__(self) -> None:
-        self.__connection = sqlite3.connect('sqlite3.db', check_same_thread=False)
+        self.__connection = sqlite3.connect('src/core/data/sqlite3.db', check_same_thread=False)
         self._cursor = self.__connection.cursor()
 
         self.__initialize_schema()
