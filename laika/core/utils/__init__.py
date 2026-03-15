@@ -1,2 +1,2 @@
-from src.core.utils.hasher import compute_hash
-from src.core.utils.embedder import LaikaEmbeddingFunction
+from laika.core.utils.hasher import compute_hash
+from laika.core.utils.embedder import LaikaEmbeddingFunction

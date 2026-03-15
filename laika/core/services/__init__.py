@@ -1,3 +1,3 @@
-from src.core.services.database import Database
-from src.core.services.vectorizer import Vectorizer
-from src.core.services.event_handler import LaikaEventHandler
+from laika.core.services.database import Database
+from laika.core.services.vectorizer import Vectorizer
+from laika.core.services.event_handler import LaikaEventHandler

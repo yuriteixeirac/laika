@@ -1,6 +1,6 @@
 import chromadb
-from src.core.models import File
-from src.core.utils import LaikaEmbeddingFunction
+from laika.core.models import File
+from laika.core.utils import LaikaEmbeddingFunction
 
 class Vectorizer:
     def __init__(self) -> None:
@@ -19,7 +19,7 @@ class Vectorizer:
         )
     
 
-    def query_files(self, query: str) -> tuple[list[str]]:
+    def query_files(self, query: str) -> tuple[list[int], list[str]]:
         results = self.__collection.query(
             query_texts=[query],
             include=['documents']

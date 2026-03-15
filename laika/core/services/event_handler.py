@@ -2,8 +2,8 @@ from watchdog.events import *
 import threading
 from queue import Queue
 from pathlib import Path
-from src.core.services import Database, Vectorizer
-from src.core.models import File
+from laika.core.services import Database, Vectorizer
+from laika.core.models import File
 
 
 class LaikaEventHandler(RegexMatchingEventHandler):
@@ -33,13 +33,20 @@ class LaikaEventHandler(RegexMatchingEventHandler):
         self.debounce_timers = debounce_timers
         self.queue = queue
 
+        self.__setup_folder()
+
 
     def __setup_folder(self) -> None:
         """
             When setup in an already existing folder,
             setup rows and embeddings for each file
         """
-        ...
+        NOTES = Path().resolve() / os.getenv('MONITORED_DIR', '')
+        for file in Path(NOTES).rglob(''):
+            if not file.is_dir():
+                continue
+            self.database.upsert_file(file)
+            self.__add_to_debouncer(file)
 
 
     def on_created(self, event) -> None:

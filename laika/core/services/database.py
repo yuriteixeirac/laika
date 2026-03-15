@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
-from src.core.models import File
-from src.core.utils import compute_hash
+from laika.core.models import File
+from laika.core.utils import compute_hash
 
 
 class Database:
@@ -9,8 +9,8 @@ class Database:
         Database wrapper class that communicates with a 
         sqlite3 database with a single table of files.
     """
-    def __init__(self) -> None:
-        self.__connection = sqlite3.connect('src/core/data/sqlite3.db', check_same_thread=False)
+    def __init__(self, path: str | Path) -> None:
+        self.__connection = sqlite3.connect(str(path), check_same_thread=False)
         self._cursor = self.__connection.cursor()
 
         self.__initialize_schema()

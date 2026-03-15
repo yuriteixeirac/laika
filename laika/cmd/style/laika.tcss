@@ -1,0 +1,45 @@
+Screen {
+    align: center top;
+}
+
+Input {
+    width: 85%;
+}
+
+SearchBar {
+    align: center top;
+    height: 5;
+    padding: 1;
+}
+
+Horizontal {
+    align: center top;
+}
+
+ListView {
+    width: 30;
+    padding: 0;
+    margin: 0 1 0 4;
+    border: solid white;
+}
+
+ListItem {
+    width: 100%;
+    height: 25%;
+    border: solid white;
+}
+
+#main-view {
+    width: 97.5%;
+    overflow-x: auto;
+}
+
+Markdown {
+    padding: 0 3;
+    width: 100%;
+    overflow-y: auto;
+}
+
+VerticalScroll {
+    border: solid white;
+}

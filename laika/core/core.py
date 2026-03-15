@@ -1,11 +1,12 @@
 from watchdog.observers import Observer
 from dotenv import load_dotenv
-import os, threading
 from queue import Queue, Empty
-from src.core.services.database import Database
-from src.core.services.vectorizer import Vectorizer
-from src.core.services.event_handler import LaikaEventHandler
-from src.core.models import File
+import os, threading
+from laika.core.services.database import Database
+from laika.core.services.vectorizer import Vectorizer
+from laika.core.services.event_handler import LaikaEventHandler
+from laika.core.models import File
+from pathlib import Path
 
 load_dotenv()
 
@@ -25,7 +26,9 @@ def main() -> None:
     debounce_timers: dict[str, threading.Timer] = {}
 
     # Database classes
-    database = Database()
+    ROOT = Path().resolve()
+
+    database = Database(ROOT / 'laika/core/data' / 'sqlite3.db')
     vectorizer = Vectorizer()
 
     # Watchdog implementation
@@ -37,7 +40,8 @@ def main() -> None:
         queue=queue
     )
 
-    observer.schedule(handler, os.getenv('MONITORED_FOLDER', '/notes/'))
+    print(ROOT / 'notes')
+    observer.schedule(handler, os.getenv('MONITORED_FOLDER', ROOT / 'notes/'), recursive=True) # type: ignore
     observer.start()
 
     # Thread for consuming the debouncing queue

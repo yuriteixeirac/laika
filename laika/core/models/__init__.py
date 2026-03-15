@@ -1,1 +1,1 @@
-from src.core.models.file import File
+from laika.core.models.file import File
