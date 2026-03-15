@@ -11,6 +11,5 @@ Fazendo isso, eu provavelmente me tornei o melhor programador do meu bairro. \o/
 Apesar de eu ter desenvolvido um bocado de boas práticas no processo desse projeto pessoal, uma das que eu não consegui manter foi o histórico de commits..
 
 ## To do
-- Fazer uma interface no terminal.
-- Containerizar a aplicação;
+- Definir uma classe de configuração;
 - Documentar decentemente.
