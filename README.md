@@ -13,3 +13,4 @@ Apesar de eu ter desenvolvido um bocado de boas práticas no processo desse proj
 ## To do
 - Definir uma classe de configuração;
 - Documentar decentemente.
+- Limitar o resultado das queries do chroma baseado na similaridade.
