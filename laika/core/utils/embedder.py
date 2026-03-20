@@ -8,7 +8,7 @@ dotenv.load_dotenv()
 
 @register_embedding_function
 class LaikaEmbeddingFunction(EmbeddingFunction):
-    def __init__(self, model: str = os.getenv('EMBEDDING_MODEL', '')) -> None:
+    def __init__(self, model: str = os.getenv('LAIKA_EMBEDDING_MODEL', '')) -> None:
         if not model:
             raise Exception('Embedding model was not detected.')
         self.model = SentenceTransformer(model)

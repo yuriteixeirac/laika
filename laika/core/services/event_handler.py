@@ -41,9 +41,9 @@ class LaikaEventHandler(RegexMatchingEventHandler):
             When setup in an already existing folder,
             setup rows and embeddings for each file
         """
-        NOTES = Path().resolve() / os.getenv('MONITORED_DIR', '')
+        NOTES = Path().resolve() / os.getenv('LAIKA_MONITORED_DIR', '')
         for file in Path(NOTES).rglob(''):
-            if not file.is_dir():
+            if file.is_dir():
                 continue
             self.database.upsert_file(file)
             self.__add_to_debouncer(file)
@@ -75,9 +75,10 @@ class LaikaEventHandler(RegexMatchingEventHandler):
 
         source, destination = Path(event.src_path), Path(event.dest_path)   # type: ignore
 
-        if not str(destination).startswith(os.getenv('MONITORING_FOLDER', '')):
-            self.database.delete_file(source)
+        if not str(destination).startswith(os.getenv('LAIKA_MONITORED_DIR', '')):
+            id = self.database.delete_file(source)
             del self.debounce_timers[str(source)]
+            self.vectorizer.delete_vectors(id)
 
             return super().on_moved(event)
 

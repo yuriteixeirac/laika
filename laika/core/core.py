@@ -40,8 +40,7 @@ def main() -> None:
         queue=queue
     )
 
-    print(ROOT / 'notes')
-    observer.schedule(handler, os.getenv('MONITORED_FOLDER', ROOT / 'notes/'), recursive=True) # type: ignore
+    observer.schedule(handler, os.getenv('LAIKA_MONITORED_DIR', ''), recursive=True) # type: ignore
     observer.start()
 
     # Thread for consuming the debouncing queue
