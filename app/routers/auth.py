@@ -1,10 +1,13 @@
-from fastapi import Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import oauth, utils
-from app.auth import auth_router
-from app.auth.models import Usuario
+from app.models import Usuario
+
+auth_router = APIRouter(
+    prefix='/auth'
+)
 
 
 @auth_router.get('/suap/login')
