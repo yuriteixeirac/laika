@@ -1,0 +1,7 @@
+[project]
+name = "laika"
+version = "0.1.0"
+description = "Um RAG baseado na bibliografia do curso técnico em informática do IFRN campus Ceará-Mirim."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
