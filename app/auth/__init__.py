@@ -4,4 +4,4 @@ auth_router = APIRouter(
     prefix='/auth'
 )
 
-from . import models
+from . import models, routes
