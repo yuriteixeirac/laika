@@ -6,14 +6,13 @@ import sqlalchemy.orm as so
 from app import Base
 
 
-class Usuario(Base):
-    __tablename__ = 'usuario'
+class Sessao(Base):
+    __tablename__ = 'sessao'
 
     id: so.Mapped[int] = so.mapped_column(sa.Integer(), primary_key=True)
-    nome: so.Mapped[str | None] = so.mapped_column(sa.String(255), nullable=True)
-    matricula: so.Mapped[str] = so.mapped_column(sa.String(14), index=True, unique=True)
-    email: so.Mapped[str | None] = so.mapped_column(sa.String(255), unique=True, nullable=True)
-    sessoes: so.Mapped[list['Sessao']] = so.relationship(back_populates='usuario')
+    titulo: so.Mapped[str] = so.mapped_column(sa.String(255))
+    usuario: so.Mapped['Usuario'] = so.relationship(back_populates='sessoes')
+    usuario_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('usuario.id'))
     criado_em: so.Mapped[datetime] = so.mapped_column(sa.DateTime(), default=datetime.now)
     atualizado_em: so.Mapped[datetime] = so.mapped_column(
         sa.DateTime(),
