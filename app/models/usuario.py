@@ -13,7 +13,6 @@ class Usuario(Base):
     nome: so.Mapped[str | None] = so.mapped_column(sa.String(255), nullable=True)
     matricula: so.Mapped[str] = so.mapped_column(sa.String(14), index=True, unique=True)
     email: so.Mapped[str | None] = so.mapped_column(sa.String(255), unique=True, nullable=True)
-    sessoes: so.Mapped[list['Sessao']] = so.relationship(back_populates='usuario')
     criado_em: so.Mapped[datetime] = so.mapped_column(sa.DateTime(), default=datetime.now)
     atualizado_em: so.Mapped[datetime] = so.mapped_column(
         sa.DateTime(),
