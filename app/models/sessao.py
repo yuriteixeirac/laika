@@ -13,6 +13,7 @@ class Sessao(Base):
     titulo: so.Mapped[str] = so.mapped_column(sa.String(255))
     usuario: so.Mapped['Usuario'] = so.relationship(back_populates='sessoes')
     usuario_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('usuario.id'))
+    mensagens: so.Mapped[list['Mensagem']] = so.relationship(back_populates='sessao')
     criado_em: so.Mapped[datetime] = so.mapped_column(sa.DateTime(), default=datetime.now)
     atualizado_em: so.Mapped[datetime] = so.mapped_column(
         sa.DateTime(),
