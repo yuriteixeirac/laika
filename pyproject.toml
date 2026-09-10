@@ -11,6 +11,16 @@ dependencies = [
     "fastapi[standard]>=0.141.1",
     "itsdangerous>=2.2.0",
     "pgvector>=0.5.0",
+    "pymupdf>=1.28.2",
     "python-dotenv>=1.2.3",
+    "sentence-transformers>=6.0.1",
     "sqlalchemy>=2.0.52",
+]
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+exclude = [
+    ".venv",
+    "venv",
+    "**/__pycache__",
 ]
