@@ -21,6 +21,7 @@ dependencies = [
 typeCheckingMode = "standard"
 exclude = [
     ".venv",
-    "venv",
     "**/__pycache__",
+    ".git"
 ]
+allowedUntypedLibraries = ["sentence_transformers", "torch", "transformers"]
