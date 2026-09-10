@@ -26,8 +26,16 @@ def chunk_page(page: str, size: int = 300, overlap: int = 50) -> list[str]:
     return chunks
 
 
+def get_chunks(chunkset: list[tuple[int, list[str]]]) -> list[str]:
+    """Transforma a estrutura de tuple[int, list[str]] em uma única lista contendo todos os chunks."""
+    total = []
+    for c in chunkset:
+        total += c[1]
+    return total
+
+
 def normalizar_nome(nome: str) -> str:
-    return nome.replace("-", " ").title()
+    return nome.replace(".pdf", "").replace("-", " ").title()
 
 
 async def ingest():
@@ -40,23 +48,32 @@ async def ingest():
         chunks = []
         with pymupdf.open(f"data/raw/{file}") as doc:
             for page in doc:
-                chunks += chunk_page(page.get_text())
+                chunks.append(
+                    (page.number, chunk_page(page.get_text())),
+                )
 
         embeddings = model.encode(
-            chunks,
+            get_chunks(chunks),
             normalize_embeddings=True,
         )
-        for chunk, embedding in zip(chunks, embeddings):
-            db.add(
-                Chunk(
-                    conteudo=chunk,
-                    embedding=embedding,
-                    pagina=0,
-                    documento=documento,
+        for page, chunkset in chunks:
+            counter = 0
+            for chunk, embedding in zip(chunkset, embeddings):
+                db.add(
+                    Chunk(
+                        conteudo=chunk,
+                        embedding=embedding,
+                        pagina=page,
+                        documento=documento,
+                    )
                 )
-            )
+                counter += 1
+            embeddings = embeddings[counter:]
 
-        await db.commit()
+        try:
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
         await db.close()
 
 
