@@ -32,5 +32,7 @@ oauth.register(
 Base = declarative_base()
 
 from app.routers.auth_router import auth_router
+from app.routers.session_router import session_router
 
 app.include_router(auth_router)
+app.include_router(session_router)
