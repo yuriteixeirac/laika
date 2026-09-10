@@ -1,7 +1,5 @@
 import asyncio
-import itertools
 import os
-from time import sleep
 
 import pymupdf
 from sentence_transformers import SentenceTransformer
