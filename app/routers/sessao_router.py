@@ -13,9 +13,7 @@ sessao_router = APIRouter(prefix="/sessao")
 
 
 @sessao_router.get("/")
-async def list_sessoes(
-    request: Request, db: AsyncSession = Depends(utils.get_db)
-) -> Sequence[Sessao]:
+async def list_sessoes(request: Request, db: AsyncSession = Depends(utils.get_db)):
     sessoes = await db.scalars(
         select(Sessao).where(
             Sessao.usuario == await utils.get_current_user(request, db)
@@ -27,7 +25,7 @@ async def list_sessoes(
 @sessao_router.get("/{sessao_id}")
 async def get_sessao(
     sessao_id: int, request: Request, db: AsyncSession = Depends(utils.get_db)
-) -> Sessao:
+):
     usuario = await utils.get_current_user(request, db)
 
     sessao = await db.scalar(
@@ -83,7 +81,7 @@ async def deletar_sessao(
 @sessao_router.get("/{sessao_id}/mensagens")
 async def get_mensagens(
     request: Request, sessao_id: int, db: AsyncSession = Depends(utils.get_db)
-) -> Sequence[Mensagem]:
+):
     usuario = await utils.get_current_user(request, db)
 
     sessao = await db.scalar(

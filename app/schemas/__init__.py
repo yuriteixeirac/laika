@@ -1,1 +1,1 @@
-from app.schemas import sessao_schemas
+from app.schemas import chat_schemas, sessao_schemas

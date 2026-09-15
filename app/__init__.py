@@ -32,7 +32,9 @@ oauth.register(
 Base = declarative_base()
 
 from app.routers.auth_router import auth_router
+from app.routers.chat_router import chat_router
 from app.routers.sessao_router import sessao_router
 
 app.include_router(auth_router)
 app.include_router(sessao_router)
+app.include_router(chat_router)
