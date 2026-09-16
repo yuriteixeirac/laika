@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import engine
+from app.models.mensagem import Mensagem
 from app.models.usuario import Usuario
 
 DeepSeekClient = AsyncOpenAI(
@@ -43,5 +44,15 @@ async def gerar_titulo(input: str, output: str) -> str | None:
             }
         ],
     )
-    print(res.choices[0].message.content)
     return res.choices[0].message.content
+
+
+async def get_session_messages(db: AsyncSession, sessao_id: int) -> list[dict]:
+    mensagens = await db.scalars(
+        select(Mensagem).where(Mensagem.sessao_id == sessao_id)
+    )
+
+    output = []
+    for msg in mensagens.all():
+        output.append({"role": msg.role.value, "content": msg.conteudo})
+    return output
