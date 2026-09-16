@@ -76,10 +76,10 @@ async def post_mensagem(
     request: Request,
     db: AsyncSession = Depends(utils.get_db),
 ):
-    # usuario = await utils.get_current_user(request, db)
+    usuario = await utils.get_current_user(request, db)
 
     sessao = await db.scalar(
-        select(Sessao).where(Sessao.id == sessao_id, Sessao.usuario_id == 1)
+        select(Sessao).where(Sessao.id == sessao_id, Sessao.usuario_id == usuario.id)
     )
 
     if not sessao:
