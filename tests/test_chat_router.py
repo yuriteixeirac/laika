@@ -47,8 +47,10 @@ def test_start_chat_faz_retrieval_e_streaming(
     assert eventos[-1][0] == "done"
     assert eventos[-1][1]["title"] == "Laços de repetição"
 
-    # O embedding da consulta do usuário alimentou o retrieval.
+    # Sem histórico não há follow-up para condensar: a consulta vai como veio.
     assert embedding_fake == ["o que é um laço?"]
+    # A única chamada sem stream é a geração de título.
+    assert len(llm.chamadas_sem_stream) == 1
 
 
 def test_start_chat_prompt_recebe_o_contexto_recuperado(
@@ -65,7 +67,7 @@ def test_start_chat_prompt_recebe_o_contexto_recuperado(
     assert "Algoritmos e Lógica de Programação (página 12)" in sistema["content"]
     assert "Um laço de repetição executa" in sistema["content"]
     assert [m["role"] for m in llm.mensagens_enviadas[1:]] == ["user"]
-    assert llm.chamada_stream["model"] == "deepseek-v4-flash"
+    assert llm.chamada_stream["model"] == utils.MODELO_LLM
 
 
 def test_start_chat_persiste_sessao_mensagens_e_titulo(
@@ -186,3 +188,29 @@ def test_post_mensagem_usa_historico_e_contexto(
     assert [m.conteudo for m in persistidas] == ["Certo"]
     assert persistidas[0].sessao_id == 7
     assert [m.conteudo for m in fake_db.mensagens(Role.USER)] == ["segunda pergunta"]
+
+
+def test_post_mensagem_condensa_follow_up_antes_do_retrieval(
+    client, fake_db: FakeSession, autenticado, deepseek, embedding_fake, chunk, sessao_secundaria
+):
+    fake_db.scalar_result = Sessao(id=7, titulo="Sessão antiga", usuario_id=autenticado.id)
+    fake_db.scalars_rows = [
+        SimpleNamespace(role=Role.USER, conteudo="estou estudando laços de repetição"),
+        SimpleNamespace(role=Role.ASSISTANT, conteudo="laços repetem blocos"),
+        SimpleNamespace(role=Role.USER, conteudo="e em Python?"),
+    ]
+    fake_db.execute_rows = [(chunk, "Algoritmos")]
+    llm = deepseek(deltas=["Certo"], condensacao="laço de repetição em Python")
+
+    client.post("/chat/7", json={"conteudo": "e em Python?"})
+
+    # A busca usa a consulta reescrita (com o contexto do histórico)...
+    assert embedding_fake == ["laço de repetição em Python"]
+    # ...mas o prompt continua com as mensagens originais.
+    assert [m["content"] for m in llm.mensagens_enviadas[1:]] == [
+        "estou estudando laços de repetição",
+        "laços repetem blocos",
+        "e em Python?",
+    ]
+    # Uma única chamada extra (a condensação); este endpoint não gera título.
+    assert len(llm.chamadas_sem_stream) == 1

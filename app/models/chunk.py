@@ -12,5 +12,9 @@ class Chunk(Base):
     conteudo: so.Mapped[str] = so.mapped_column(sa.Text())
     embedding: so.Mapped[list[float]] = so.mapped_column(Vector(768))
     pagina: so.Mapped[int] = so.mapped_column(sa.Integer(), nullable=False)
+    # Identifica modelo + esquema de prefixos usados no embedding deste chunk.
+    versao_embedding: so.Mapped[str | None] = so.mapped_column(
+        sa.String(128), index=True, nullable=True
+    )
     documento: so.Mapped["Documento"] = so.relationship(back_populates="chunks")
     documento_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("documento.id"))

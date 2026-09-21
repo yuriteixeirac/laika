@@ -36,3 +36,16 @@ Para ingerir os PDFs, coloque-os em `data/raw/` e execute:
 ```bash
 uv run python -m scripts.ingestion
 ```
+
+Arquivos já ingeridos são identificados pelo hash SHA-256 e pulados. Para
+re-ingerir (por exemplo, após trocar o modelo de embedding), use:
+
+```bash
+uv run python -m scripts.ingestion --force
+```
+
+## Testes
+
+```bash
+uv run pytest
+```

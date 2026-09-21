@@ -152,17 +152,20 @@ class FakeDeepSeek:
     """Dublê do ``AsyncOpenAI``.
 
     Grava cada chamada em ``chamadas`` e, quando ``stream=True``, devolve um
-    gerador assíncrono com os deltas configurados.
+    gerador assíncrono com os deltas configurados. Chamadas sem stream (título e
+    condensação da consulta) devolvem ``titulo`` ou ``condensacao``.
     """
 
     def __init__(
         self,
         deltas: tuple[str, ...] = ("Olá", ", mundo"),
         titulo: str = "Título gerado",
+        condensacao: str | None = None,
         erro: Exception | None = None,
     ):
         self.deltas = list(deltas)
         self.titulo = titulo
+        self.condensacao = condensacao if condensacao is not None else titulo
         self.erro = erro
         self.chamadas: list[dict[str, Any]] = []
 
@@ -175,7 +178,9 @@ class FakeDeepSeek:
         if not kwargs.get("stream"):
             return SimpleNamespace(
                 choices=[
-                    SimpleNamespace(message=SimpleNamespace(content=self.titulo))
+                    SimpleNamespace(
+                        message=SimpleNamespace(content=self._resposta_sem_stream(kwargs))
+                    )
                 ]
             )
 
@@ -187,9 +192,23 @@ class FakeDeepSeek:
 
         return gerador()
 
+    def _resposta_sem_stream(self, kwargs: dict[str, Any]) -> str:
+        """Distingue a condensação da consulta da geração de título."""
+        mensagens = kwargs.get("messages", [])
+        if any(
+            "consulta de busca autônoma" in (m.get("content") or "")
+            for m in mensagens
+        ):
+            return self.condensacao
+        return self.titulo
+
     @property
     def chamada_stream(self) -> dict[str, Any]:
         return next(c for c in self.chamadas if c.get("stream"))
+
+    @property
+    def chamadas_sem_stream(self) -> list[dict[str, Any]]:
+        return [c for c in self.chamadas if not c.get("stream")]
 
     @property
     def mensagens_enviadas(self) -> list[dict[str, Any]]:

@@ -33,8 +33,10 @@ async def start_chat(
     db.add(Mensagem(conteudo=mensagem.conteudo, role=Role.USER, sessao_id=sessao_id))
     await db.commit()
 
-    contexto = await utils.recuperar_contexto(db, mensagem.conteudo)
-    mensagens = await utils.get_session_messages(db, sessao_id, contexto)
+    historico = await utils.get_session_messages(db, sessao_id)
+    consulta = await utils.condensar_consulta(historico, mensagem.conteudo)
+    contexto = await utils.recuperar_contexto(db, consulta)
+    mensagens = utils.montar_mensagens(historico, contexto)
 
     async def stream_response(mensagens: list[dict]) -> AsyncGenerator[str]:
         yield "event: meta\n"
@@ -43,7 +45,7 @@ async def start_chat(
         chunks = []
         try:
             async for event in await utils.DeepSeekClient.chat.completions.create(
-                model="deepseek-v4-flash",
+                model=utils.MODELO_LLM,
                 messages=mensagens,  # type: ignore
                 stream=True,
             ):
@@ -93,8 +95,10 @@ async def post_mensagem(
     db.add(Mensagem(conteudo=mensagem.conteudo, role=Role.USER, sessao_id=sessao_id))
     await db.commit()
 
-    contexto = await utils.recuperar_contexto(db, mensagem.conteudo)
-    mensagens = await utils.get_session_messages(db, sessao_id, contexto)
+    historico = await utils.get_session_messages(db, sessao_id)
+    consulta = await utils.condensar_consulta(historico, mensagem.conteudo)
+    contexto = await utils.recuperar_contexto(db, consulta)
+    mensagens = utils.montar_mensagens(historico, contexto)
 
     async def stream_response(mensagens: list[dict]) -> AsyncGenerator[str]:
         yield "event: meta\n\n"
@@ -102,7 +106,7 @@ async def post_mensagem(
         chunks = []
         try:
             async for event in await utils.DeepSeekClient.chat.completions.create(
-                model="deepseek-v4-flash",
+                model=utils.MODELO_LLM,
                 messages=mensagens,  # type: ignore
                 stream=True,
             ):

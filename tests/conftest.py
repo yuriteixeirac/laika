@@ -72,11 +72,11 @@ def embedding_fake(monkeypatch: pytest.MonkeyPatch):
     """Evita carregar o sentence-transformers durante os testes."""
     chamadas: list[str] = []
 
-    async def fake_embed(texto: str) -> list[float]:
-        chamadas.append(texto)
+    async def fake_embed(consulta: str) -> list[float]:
+        chamadas.append(consulta)
         return [0.0] * 768
 
-    monkeypatch.setattr(utils, "embed_texto", fake_embed)
+    monkeypatch.setattr(utils, "embed_consulta", fake_embed)
     return chamadas
 
 

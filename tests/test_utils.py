@@ -15,6 +15,29 @@ from app.models.usuario import Usuario
 from tests.helpers import FakeSession
 
 
+class FakeEmbedding:
+    def __init__(self, dados):
+        self._dados = dados
+
+    def tolist(self):
+        return self._dados
+
+
+class FakeModel:
+    """Modelo de embedding que só registra o que recebeu."""
+
+    def __init__(self, capturado: dict):
+        self.capturado = capturado
+
+    def encode(self, textos, normalize_embeddings=False):
+        self.capturado["textos"] = textos
+        self.capturado["normalize_embeddings"] = normalize_embeddings
+        self.capturado["thread"] = threading.get_ident()
+        if isinstance(textos, str):
+            return FakeEmbedding([0.1, 0.2])
+        return FakeEmbedding([[0.1] * 768 for _ in textos])
+
+
 # --------------------------------------------------------------------------- #
 # get_db / get_current_user
 # --------------------------------------------------------------------------- #
@@ -57,7 +80,6 @@ async def test_get_current_user_logado(usuario: Usuario):
     resultado = await utils.get_current_user(request, db)
 
     assert resultado is usuario
-    # A busca foi feita pelo id da sessão.
     sql = str(db.statements[0].compile(dialect=postgresql.dialect()))
     assert "usuario.id" in sql
 
@@ -80,11 +102,11 @@ async def test_gerar_titulo_usa_a_resposta_da_llm(deepseek):
 
 
 # --------------------------------------------------------------------------- #
-# get_session_messages
+# histórico e montagem do prompt
 # --------------------------------------------------------------------------- #
 
 
-async def test_get_session_messages_sem_contexto_preserva_historico(fake_db: FakeSession):
+async def test_get_session_messages_preserva_historico(fake_db: FakeSession):
     fake_db.scalars_rows = [
         SimpleNamespace(role=Role.USER, conteudo="oi"),
         SimpleNamespace(role=Role.ASSISTANT, conteudo="olá"),
@@ -100,14 +122,74 @@ async def test_get_session_messages_sem_contexto_preserva_historico(fake_db: Fak
     assert "ORDER BY mensagem.id" in sql
 
 
-async def test_get_session_messages_com_contexto_prepende_system(fake_db: FakeSession):
-    fake_db.scalars_rows = [SimpleNamespace(role=Role.USER, conteudo="pergunta")]
+def test_montar_mensagens_prepende_system_com_contexto():
+    historico = [{"role": "user", "content": "pergunta"}]
 
-    mensagens = await utils.get_session_messages(fake_db, sessao_id=1, contexto="CTX")
+    mensagens = utils.montar_mensagens(historico, "CTX")
 
     assert mensagens[0]["role"] == "system"
     assert mensagens[0]["content"] == utils.PROMPT_SISTEMA_RAG + "CTX"
     assert mensagens[1] == {"role": "user", "content": "pergunta"}
+    # Não muta o histórico recebido.
+    assert historico == [{"role": "user", "content": "pergunta"}]
+
+
+# --------------------------------------------------------------------------- #
+# condensação da consulta (follow-ups)
+# --------------------------------------------------------------------------- #
+
+
+async def test_condensar_consulta_sem_historico_nao_chama_a_llm(deepseek):
+    llm = deepseek()
+
+    assert await utils.condensar_consulta([], "o que é um laço?") == "o que é um laço?"
+    assert llm.chamadas == []
+
+
+async def test_condensar_consulta_so_com_a_pergunta_atual_nao_chama_a_llm(deepseek):
+    llm = deepseek()
+    historico = [{"role": "user", "content": "o que é um laço?"}]
+
+    consulta = await utils.condensar_consulta(historico, "o que é um laço?")
+
+    assert consulta == "o que é um laço?"
+    assert llm.chamadas == []
+
+
+async def test_condensar_consulta_reescreve_follow_up(deepseek):
+    llm = deepseek(condensacao="laço de repetição em Python")
+    historico = [
+        {"role": "user", "content": "estou estudando laços de repetição"},
+        {"role": "assistant", "content": "laços repetem blocos de código"},
+        {"role": "user", "content": "e em Python?"},
+    ]
+
+    consulta = await utils.condensar_consulta(historico, "e em Python?")
+
+    assert consulta == "laço de repetição em Python"
+    conteudos = [m["content"] for m in llm.chamadas_sem_stream[0]["messages"]]
+    assert "estou estudando laços de repetição" in conteudos
+    assert "e em Python?" in conteudos
+
+
+async def test_condensar_consulta_usa_a_pergunta_original_se_a_llm_falhar(deepseek):
+    deepseek(erro=RuntimeError("api fora do ar"))
+    historico = [
+        {"role": "user", "content": "primeira"},
+        {"role": "assistant", "content": "resposta"},
+    ]
+
+    assert await utils.condensar_consulta(historico, "e isso?") == "e isso?"
+
+
+async def test_condensar_consulta_ignora_resposta_vazia(deepseek):
+    deepseek(condensacao="   ")
+    historico = [
+        {"role": "user", "content": "primeira"},
+        {"role": "assistant", "content": "resposta"},
+    ]
+
+    assert await utils.condensar_consulta(historico, "e isso?") == "e isso?"
 
 
 # --------------------------------------------------------------------------- #
@@ -142,8 +224,8 @@ def _limite(stmt) -> int:
     return stmt._limit_clause.value
 
 
-async def test_recuperar_chunks_consulta_pgvector_com_cosseno(
-    fake_db: FakeSession, monkeypatch, chunk, embedding_fake
+async def test_recuperar_chunks_filtra_versao_e_distancia(
+    fake_db: FakeSession, chunk, embedding_fake
 ):
     fake_db.execute_rows = [(chunk, "Algoritmos")]
 
@@ -156,17 +238,24 @@ async def test_recuperar_chunks_consulta_pgvector_com_cosseno(
     sql = str(stmt.compile(dialect=postgresql.dialect()))
     assert "<=>" in sql  # distância de cosseno do pgvector
     assert "JOIN documento" in sql
+    assert "chunk.versao_embedding" in sql  # ignora vetores de modelos antigos
     assert _limite(stmt) == utils.RAG_TOP_K == 3
 
+    parametros = stmt.compile(dialect=postgresql.dialect()).params
+    assert utils.VERSAO_EMBEDDING in parametros.values()
+    assert utils.RAG_DISTANCIA_MAXIMA in parametros.values()
 
-async def test_recuperar_chunks_respeita_limite_customizado(
+
+async def test_recuperar_chunks_respeita_limite_e_limiar(
     fake_db: FakeSession, embedding_fake
 ):
     fake_db.execute_rows = []
 
-    await utils.recuperar_chunks(fake_db, "consulta", limite=7)
+    await utils.recuperar_chunks(fake_db, "consulta", limite=7, distancia_maxima=0.25)
 
-    assert _limite(fake_db.statements[0]) == 7
+    stmt = fake_db.statements[0]
+    assert _limite(stmt) == 7
+    assert 0.25 in stmt.compile(dialect=postgresql.dialect()).params.values()
 
 
 async def test_recuperar_contexto_formata_os_chunks(
@@ -209,29 +298,33 @@ def test_get_embedding_model_e_singleton(monkeypatch):
     segundo = utils.get_embedding_model()
 
     assert primeiro is segundo
-    assert criados == ["intfloat/multilingual-e5-base"]
+    assert criados == [utils.MODELO_EMBEDDING]
 
 
-async def test_embed_texto_normaliza_em_outra_thread(monkeypatch):
-    capturado = {}
+async def test_embed_consulta_usa_prefixo_query_em_outra_thread(monkeypatch):
+    capturado: dict = {}
+    monkeypatch.setattr(utils, "get_embedding_model", lambda: FakeModel(capturado))
 
-    class FakeEmbedding:
-        def tolist(self) -> list[float]:
-            return [0.1, 0.2]
-
-    class FakeModel:
-        def encode(self, texto, normalize_embeddings=False):
-            capturado["texto"] = texto
-            capturado["normalize_embeddings"] = normalize_embeddings
-            capturado["thread"] = threading.get_ident()
-            return FakeEmbedding()
-
-    monkeypatch.setattr(utils, "get_embedding_model", lambda: FakeModel())
-
-    embedding = await utils.embed_texto("consulta")
+    embedding = await utils.embed_consulta("o que é um laço?")
 
     assert embedding == [0.1, 0.2]
-    assert capturado["texto"] == "consulta"
+    assert capturado["textos"] == "query: o que é um laço?"
     assert capturado["normalize_embeddings"] is True
     # Não pode bloquear o event loop.
     assert capturado["thread"] != threading.get_ident()
+
+
+def test_embed_passagens_usa_prefixo_passage(monkeypatch):
+    capturado: dict = {}
+    monkeypatch.setattr(utils, "get_embedding_model", lambda: FakeModel(capturado))
+
+    embeddings = utils.embed_passagens(["primeiro", "segundo"])
+
+    assert capturado["textos"] == ["passage: primeiro", "passage: segundo"]
+    assert capturado["normalize_embeddings"] is True
+    assert len(embeddings) == 2
+
+
+def test_versao_embedding_descreve_modelo_e_esquema():
+    assert utils.MODELO_EMBEDDING in utils.VERSAO_EMBEDDING
+    assert utils.ESQUEMA_EMBEDDING in utils.VERSAO_EMBEDDING

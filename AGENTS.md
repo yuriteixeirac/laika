@@ -13,7 +13,8 @@
 - `app/` contém a aplicação FastAPI, os modelos SQLAlchemy e as rotas.
 - O objeto FastAPI se chama `app` e fica em `app/__init__.py`; não existe `main.py`.
 - `app/models/` define as entidades e `alembic/env.py` importa o `Base` para autogeração de migrações.
-- `scripts/ingestion.py` ingere os PDFs de `data/raw/`, gera embeddings com `intfloat/multilingual-e5-base` e grava os chunks no PostgreSQL.
+- `scripts/ingestion.py` ingere os PDFs de `data/raw/`, gera embeddings com `intfloat/multilingual-e5-base` e grava os chunks no PostgreSQL. Arquivos já ingeridos são identificados pelo hash SHA-256; use `--force` para re-ingerir.
+- O contrato de embedding (modelo, prefixos `query:`/`passage:` e `VERSAO_EMBEDDING`) fica em `app/utils.py`. Ao alterá-lo, re-ingira o corpus: o retrieval só considera chunks da versão atual.
 
 ## Comandos
 
@@ -21,7 +22,7 @@
 - Aplicar todas as migrações: `uv run alembic upgrade head`.
 - Verificar a revisão atual: `uv run alembic current`.
 - Criar uma migração após alterar os modelos: `uv run alembic revision --autogenerate -m "descricao"`.
-- Executar a ingestão: `uv run python -m scripts.ingestion`.
+- Executar a ingestão: `uv run python -m scripts.ingestion` (use `--force` para re-ingerir PDFs já presentes).
 - Rodar os testes: `uv run pytest`.
 
 ## Banco e migrações
