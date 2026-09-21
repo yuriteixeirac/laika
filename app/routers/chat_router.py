@@ -97,7 +97,7 @@ async def post_mensagem(
     mensagens = await utils.get_session_messages(db, sessao_id, contexto)
 
     async def stream_response(mensagens: list[dict]) -> AsyncGenerator[str]:
-        yield "event: meta\n"
+        yield "event: meta\n\n"
 
         chunks = []
         try:

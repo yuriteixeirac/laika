@@ -22,6 +22,7 @@
 - Verificar a revisão atual: `uv run alembic current`.
 - Criar uma migração após alterar os modelos: `uv run alembic revision --autogenerate -m "descricao"`.
 - Executar a ingestão: `uv run python -m scripts.ingestion`.
+- Rodar os testes: `uv run pytest`.
 
 ## Banco e migrações
 
@@ -31,5 +32,5 @@
 
 ## Verificação
 
-- Não há testes, CI, lint ou formatter configurados no repositório.
-- Após alterações, valide pelo menos a importação da aplicação ou o comando diretamente relacionado à mudança.
+- Há uma suíte de testes em `tests/` (pytest + pytest-asyncio), hermética: não acessa PostgreSQL nem a API da DeepSeek. Não há CI, lint ou formatter configurados.
+- Após alterações, valide pelo menos a importação da aplicação, o comando diretamente relacionado à mudança ou `uv run pytest`.

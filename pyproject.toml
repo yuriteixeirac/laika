@@ -26,3 +26,14 @@ exclude = [
     ".git"
 ]
 allowedUntypedLibraries = ["sentence_transformers", "torch", "transformers"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
