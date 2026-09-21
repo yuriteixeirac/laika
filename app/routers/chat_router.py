@@ -1,10 +1,10 @@
 import json
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import engine, utils
 from app.models.mensagem import Mensagem, Role
@@ -33,7 +33,10 @@ async def start_chat(
     db.add(Mensagem(conteudo=mensagem.conteudo, role=Role.USER, sessao_id=sessao_id))
     await db.commit()
 
-    async def stream_response(conteudo: str) -> AsyncGenerator[str]:
+    contexto = await utils.recuperar_contexto(db, mensagem.conteudo)
+    mensagens = await utils.get_session_messages(db, sessao_id, contexto)
+
+    async def stream_response(mensagens: list[dict]) -> AsyncGenerator[str]:
         yield "event: meta\n"
         yield f"data: {json.dumps({'session_id': sessao_id, 'redirect': f'/chat/{sessao_id}'})}\n\n"
 
@@ -41,7 +44,7 @@ async def start_chat(
         try:
             async for event in await utils.DeepSeekClient.chat.completions.create(
                 model="deepseek-v4-flash",
-                messages=[{"role": "user", "content": conteudo}],
+                messages=mensagens,  # type: ignore
                 stream=True,
             ):
                 delta = event.choices[0].delta.content or ""
@@ -65,7 +68,7 @@ async def start_chat(
         yield f"event: done\ndata: {json.dumps({'title': novo_titulo or sessao_titulo})}\n\n"
 
     return StreamingResponse(
-        stream_response(mensagem.conteudo), media_type="text/event-stream"
+        stream_response(mensagens), media_type="text/event-stream"
     )
 
 
@@ -90,14 +93,17 @@ async def post_mensagem(
     db.add(Mensagem(conteudo=mensagem.conteudo, role=Role.USER, sessao_id=sessao_id))
     await db.commit()
 
-    async def stream_response(conteudo: str) -> AsyncGenerator[str]:
+    contexto = await utils.recuperar_contexto(db, mensagem.conteudo)
+    mensagens = await utils.get_session_messages(db, sessao_id, contexto)
+
+    async def stream_response(mensagens: list[dict]) -> AsyncGenerator[str]:
         yield "event: meta\n"
 
         chunks = []
         try:
             async for event in await utils.DeepSeekClient.chat.completions.create(
                 model="deepseek-v4-flash",
-                messages=await utils.get_session_messages(db, sessao_id),  # type: ignore
+                messages=mensagens,  # type: ignore
                 stream=True,
             ):
                 delta = event.choices[0].delta.content or ""
@@ -116,5 +122,5 @@ async def post_mensagem(
         yield "event: done\n\n"
 
     return StreamingResponse(
-        stream_response(mensagem.conteudo), media_type="text/event-stream"
+        stream_response(mensagens), media_type="text/event-stream"
     )
